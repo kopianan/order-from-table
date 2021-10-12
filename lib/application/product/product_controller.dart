@@ -59,21 +59,6 @@ class ProductController extends GetxController {
 
     print(this._cartProduct);
   }
-  // void addItemToCart(ProductDataModel item) {
-  //   try {
-  //     var _exist =
-  //         this._cartProduct.firstWhere((element) => element.product == item);
-  //     var index = this._cartProduct.indexOf(_exist);
-  //     var _newData = _exist.copyWith(qty: _exist.qty! + 1);
-
-  //     this._cartProduct.removeAt(index);
-  //     this._cartProduct.add(_newData);
-  //   } catch (e) {
-  //     this._cartProduct.add(CartProductDataModel(product: item, qty: 1));
-  //   }
-
-  //   print(this._cartProduct);
-  // }
 
   List<CartProductDataModel> get getAllCartProduct => this._cartProduct;
 
@@ -83,5 +68,23 @@ class ProductController extends GetxController {
       _total += element.qty!;
     });
     return _total;
+  }
+
+  double calculateGrandTotal() {
+    double total = 0.0;
+    this._cartProduct.forEach((element) {
+      var _qty = element.qty;
+      var _item = element.product;
+
+      total += _item!.price! * _qty!;
+    });
+    return total;
+  }
+
+  bool isCartEmpty() {
+    if (this._cartProduct.length == 0) {
+      return false;
+    }
+    return true;
   }
 }

@@ -6,6 +6,8 @@ import 'package:getwidget/getwidget.dart';
 import 'package:order_from_table/application/product/product_controller.dart';
 import 'package:order_from_table/application/product/product_cubit.dart';
 import 'package:order_from_table/domain/product/product_data_model.dart';
+import 'package:order_from_table/presentation/check_out/checkout_page.dart';
+import 'package:order_from_table/presentation/widget/spinner_widget.dart';
 
 import '../../injectable.dart';
 
@@ -20,6 +22,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final GFBottomSheetController controller = GFBottomSheetController();
   final _productController = Get.find<ProductController>();
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +60,7 @@ class _DashboardPageState extends State<DashboardPage> {
             state.maybeMap(
               orElse: () {},
               onGetAllProduct: (e) {
+                print(e);
                 e.product!.fold(
                   () => {},
                   (a) => a.fold(
@@ -70,44 +74,128 @@ class _DashboardPageState extends State<DashboardPage> {
             );
           },
           builder: (context, state) {
-            return ListView.builder(
-              itemCount: _productController.getAllProduct.length,
-              itemBuilder: (context, index) {
-                var _single = _productController.getAllProduct[index];
-                return GFCard(
-                  margin: EdgeInsets.only(left: 10, right: 10, top: 10),
-                  padding: EdgeInsets.zero,
-                  content: GFListTile(
-                    margin: EdgeInsets.zero,
-                    padding:
-                        EdgeInsets.only(top: 0, left: 0, bottom: 0, right: 10),
-                    avatar: GFAvatar(
-                      radius: 35,
-                      borderRadius:
-                          BorderRadius.horizontal(left: Radius.circular(5)),
-                      shape: GFAvatarShape.square,
-                      backgroundImage: CachedNetworkImageProvider(
-                        _single.image!,
-                        errorListener: () {
-                          print("ERROR");
-                        },
+            return Stack(
+              fit: StackFit.passthrough,
+              children: [
+                Column(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: _productController.getAllProduct.length,
+                            itemBuilder: (context, index) {
+                              var _single =
+                                  _productController.getAllProduct[index];
+
+                              return GFCard(
+                                margin: EdgeInsets.only(
+                                    left: 10, right: 10, top: 10),
+                                padding: EdgeInsets.zero,
+                                content: GFListTile(
+                                  margin: EdgeInsets.zero,
+                                  padding: EdgeInsets.only(
+                                      top: 0, left: 0, bottom: 0, right: 10),
+                                  avatar: GFAvatar(
+                                    radius: 35,
+                                    borderRadius: BorderRadius.horizontal(
+                                        left: Radius.circular(5)),
+                                    shape: GFAvatarShape.square,
+                                    backgroundImage: CachedNetworkImageProvider(
+                                      _single.image!,
+                                      errorListener: () {
+                                        print("ERROR");
+                                      },
+                                    ),
+                                  ),
+                                  title: Text(_single.title!),
+                                  subTitleText: _single.price!.toString(),
+                                  icon: Obx(() => GFButtonBadge(
+                                        onPressed: () async {
+                                          //show bottom sheet
+                                          await showProductDetail(_single);
+                                        },
+                                        text: "+ Pesan",
+                                        icon: checkBadges(_single),
+                                        position: GFPosition.end,
+                                        type: GFButtonType.outline,
+                                      )),
+                                ),
+                              );
+                            }),
                       ),
                     ),
-                    title: Text(_single.title!),
-                    subTitleText: _single.price!.toString(),
-                    icon: Obx(() => GFButtonBadge(
-                          onPressed: () async {
-                            //show bottom sheet
-                            await showProductDetail(_single);
-                          },
-                          text: "+ VITARA",
-                          icon: checkBadges(_single),
-                          position: GFPosition.end,
-                          type: GFButtonType.outline,
-                        )),
+                    Obx(
+                      () => Visibility(
+                        visible: _productController.isCartEmpty(),
+                        child: SizedBox(height: 105),
+                      ),
+                    )
+                  ],
+                ),
+                Obx(
+                  () => Visibility(
+                    visible: _productController.isCartEmpty(),
+                    child: Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: InkWell(
+                        onTap: () {
+                          Get.toNamed(CheckoutPage.TAG);
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 20),
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                  blurRadius: 3,
+                                  color: Colors.grey[400]!,
+                                  spreadRadius: 3,
+                                  offset: Offset(3, -2))
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "\$" +
+                                        _productController
+                                            .calculateGrandTotal()
+                                            .toStringAsFixed(2),
+                                    style: TextStyle(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text("Sebelum pajak")
+                                ],
+                              ),
+                              GFButton(
+                                text: "PESAN",
+                                padding: EdgeInsets.symmetric(horizontal: 15),
+                                position: GFPosition.end,
+                                color: Colors.pinkAccent,
+                                icon: Icon(
+                                  Icons.shop,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () {},
+                              )
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                );
-              },
+                )
+              ],
             );
           },
         ),
@@ -161,59 +249,75 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 SizedBox(width: 8),
                 Expanded(
-                    flex: 5,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(product.title!,
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 5),
-                        Text(product.description!),
-                      ],
-                    )),
+                  flex: 5,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(product.title!,
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 5),
+                      Text(product.description!),
+                    ],
+                  ),
+                ),
               ],
             ),
-            Spacer(),
-            Divider(
-              thickness: 1,
-            ),
+            Divider(thickness: 1),
             Row(
               mainAxisSize: MainAxisSize.max,
               children: [
-                Row(
-                  children: [
-                    GFIconButton(
-                      onPressed: () {
-                        setState(() {
-                          if (_qty <= 1) {
-                            _qty = 1;
-                          } else {
-                            _qty -= 1;
-                            _productController.decreaseQty();
-                          }
-                        });
-                      },
-                      size: 12,
-                      padding: EdgeInsets.all(5),
-                      icon: Icon(Icons.remove),
-                    ),
-                    Obx(() => Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          _productController.getTempQty.toString(),
-                          style: TextStyle(fontSize: 17),
-                        ))),
-                    GFIconButton(
-                      onPressed: () {
-                        _productController.increaseQty();
-                      },
-                      size: 12,
-                      padding: EdgeInsets.all(5),
-                      icon: Icon(Icons.add),
-                    ),
-                  ],
-                ),
+                Obx(
+                  () => SpinnerWidget(
+                    decrease: () {
+                      print("Decrease");
+                      if (_qty <= 1) {
+                        _qty = 1;
+                      } else {
+                        _qty -= 1;
+                        _productController.decreaseQty();
+                      }
+                    },
+                    increase: () {
+                      _productController.increaseQty();
+                    },
+                    total: _productController.getTempQty.toString(),
+                  ),
+                )
+                // Row(
+                //   children: [
+                //     GFIconButton(
+                //       onPressed: () {
+                //         setState(() {
+                //           if (_qty <= 1) {
+                //             _qty = 1;
+                //           } else {
+                //             _qty -= 1;
+                //             _productController.decreaseQty();
+                //           }
+                //         });
+                //       },
+                //       size: 12,
+                //       padding: EdgeInsets.all(5),
+                //       icon: Icon(Icons.remove),
+                //     ),
+                //     Obx(() => Container(
+                //         padding: EdgeInsets.symmetric(horizontal: 8),
+                //         child: Text(
+                //           _productController.getTempQty.toString(),
+                //           style: TextStyle(fontSize: 17),
+                //         ))),
+                //     GFIconButton(
+                //       onPressed: () {
+                //         _productController.increaseQty();
+                //       },
+                //       size: 12,
+                //       padding: EdgeInsets.all(5),
+                //       icon: Icon(Icons.add),
+                //     ),
+                //   ],
+                // ),
+                ,
                 SizedBox(width: 12),
                 Expanded(
                   child: Row(
@@ -226,7 +330,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       GFButton(
                         onPressed: () async {
-                          _productController.addItemToCart(product, _productController.getTempQty);
+                          _productController.addItemToCart(
+                              product, _productController.getTempQty);
+                          Get.back();
                         },
                         text: "Pesan",
                       ),
